@@ -1,0 +1,24 @@
+{
+  "name": "agents",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "hello": "tsx src/hello.ts",
+    "research": "tsx src/agents/researcher.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.93.0",
+    "dotenv": "^17.4.2",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3"
+  }
+}
