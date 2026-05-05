@@ -8,6 +8,7 @@
     "research": "tsx src/agents/researcher.ts",
     "write": "tsx src/agents/writer.ts",
     "critique": "tsx src/agents/critic.ts",
+    "summarize": "tsx src/agents/summarizer.ts",
     "chain": "tsx src/chain.ts"
   },
   "keywords": [],
