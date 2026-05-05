@@ -1,17 +1,8 @@
-import { researcherAgent } from "./agents/researcher";
-import { writerAgent } from "./agents/writer";
-import { criticAgent } from "./agents/critic";
-import { summarizerAgent } from "./agents/summarizer";
-import { runWorkflow, WORKFLOW_INPUT, type Workflow } from "./runner";
+import { agentRegistry } from "./registry";
+import { loadWorkflow, runWorkflow, type WorkflowSpec } from "./runner";
+import workflowSpec from "./workflows/research-pipeline.json";
 
-const workflow: Workflow = {
-  nodes: [
-    { agent: researcherAgent, inputFrom: WORKFLOW_INPUT },
-    { agent: writerAgent, inputFrom: "researcher" },
-    { agent: criticAgent, inputFrom: "writer" },
-    { agent: summarizerAgent, inputFrom: "writer" },
-  ],
-};
+const workflow = loadWorkflow(workflowSpec as WorkflowSpec, agentRegistry);
 
 async function main() {
   const topic = process.argv.slice(2).join(" ").trim();
@@ -27,18 +18,31 @@ async function main() {
     onNodeStart: (node) => {
       step += 1;
       console.log(
-        `\n[${step}/${total}] ${node.agent.id} <- ${node.inputFrom}\n`,
+        `\n[${step}/${total}] ${node.id} <- ${node.inputFrom}\n`,
       );
     },
     onChunk: (_nodeId, text) => process.stdout.write(text),
-    onNodeEnd: () => process.stdout.write("\n"),
+    onNodeRetry: (node, attempt, err) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.log(`\n[retry] ${node.id} attempt ${attempt} failed: ${msg}`);
+    },
+    onNodeEnd: (_node, r) => {
+      if (r.status === "ok") {
+        process.stdout.write("\n");
+      } else if (r.status === "skipped") {
+        step += 1;
+        console.log(`\n[${step}/${total}] ${r.id} skipped — ${r.error}`);
+      } else if (r.status === "failed") {
+        console.log(`\n[fail] ${r.id} after ${r.attempts} attempt(s): ${r.error}`);
+      }
+    },
   });
 
   const perNode = run.nodes
-    .map((n) => `${n.id} ${n.inputTokens}/${n.outputTokens}`)
+    .map((n) => `${n.id}(${n.status}) ${n.inputTokens}/${n.outputTokens}`)
     .join(", ");
   console.log(
-    `\n--- Pipeline complete --- Tokens: ${run.totalInputTokens} in / ${run.totalOutputTokens} out (${perNode})`,
+    `\n--- ${workflow.name ?? "pipeline"} complete --- Tokens: ${run.totalInputTokens} in / ${run.totalOutputTokens} out (${perNode})`,
   );
 }
 

@@ -1,0 +1,9 @@
+{
+  "name": "research-pipeline",
+  "nodes": [
+    { "id": "researcher", "agent": "researcher", "inputFrom": "$input" },
+    { "id": "writer", "agent": "writer", "inputFrom": "researcher" },
+    { "id": "critic", "agent": "critic", "inputFrom": "writer", "retries": 1, "onError": "skip" },
+    { "id": "summarizer", "agent": "summarizer", "inputFrom": "writer" }
+  ]
+}
