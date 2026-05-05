@@ -1,5 +1,6 @@
 import "dotenv/config";
 import Anthropic from "@anthropic-ai/sdk";
+import type { Agent } from "../runner";
 
 const client = new Anthropic();
 
@@ -22,17 +23,28 @@ export interface CritiqueResult {
   outputTokens: number;
 }
 
-export async function critique(prose: string): Promise<CritiqueResult> {
+export interface CritiqueOptions {
+  onChunk?: (text: string) => void;
+}
+
+export async function critique(
+  prose: string,
+  options: CritiqueOptions = {},
+): Promise<CritiqueResult> {
   if (!prose || !prose.trim()) {
     throw new Error("critique(): prose is required");
   }
 
-  const response = await client.messages.create({
+  const stream = client.messages.stream({
     model: "claude-opus-4-7",
     max_tokens: 1024,
     system: SYSTEM_PROMPT,
     messages: [{ role: "user", content: `Prose to critique:\n${prose}` }],
   });
+
+  if (options.onChunk) stream.on("text", options.onChunk);
+
+  const response = await stream.finalMessage();
 
   const issues = response.content
     .filter((b): b is Anthropic.TextBlock => b.type === "text")
@@ -48,6 +60,18 @@ export async function critique(prose: string): Promise<CritiqueResult> {
   };
 }
 
+export const criticAgent: Agent = {
+  id: "critic",
+  async run(prose, options) {
+    const c = await critique(prose, { onChunk: options?.onChunk });
+    return {
+      output: c.issues,
+      inputTokens: c.inputTokens,
+      outputTokens: c.outputTokens,
+    };
+  },
+};
+
 async function main() {
   const prose = process.argv.slice(2).join(" ").trim();
   if (!prose) {
@@ -55,11 +79,12 @@ async function main() {
     process.exit(1);
   }
 
-  const result = await critique(prose);
   console.log("\n--- Critic issues ---\n");
-  console.log(result.issues);
+  const result = await critique(prose, {
+    onChunk: (text) => process.stdout.write(text),
+  });
   console.log(
-    `\nTokens used: ${result.inputTokens} in / ${result.outputTokens} out`,
+    `\n\nTokens used: ${result.inputTokens} in / ${result.outputTokens} out`,
   );
 }
 

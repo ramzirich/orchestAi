@@ -1,5 +1,6 @@
 import "dotenv/config";
 import Anthropic from "@anthropic-ai/sdk";
+import type { Agent } from "../runner";
 
 const client = new Anthropic();
 
@@ -22,17 +23,28 @@ export interface SummaryResult {
   outputTokens: number;
 }
 
-export async function summarize(prose: string): Promise<SummaryResult> {
+export interface SummarizeOptions {
+  onChunk?: (text: string) => void;
+}
+
+export async function summarize(
+  prose: string,
+  options: SummarizeOptions = {},
+): Promise<SummaryResult> {
   if (!prose || !prose.trim()) {
     throw new Error("summarize(): prose is required");
   }
 
-  const response = await client.messages.create({
+  const stream = client.messages.stream({
     model: "claude-opus-4-7",
     max_tokens: 512,
     system: SYSTEM_PROMPT,
     messages: [{ role: "user", content: `Prose to summarize:\n${prose}` }],
   });
+
+  if (options.onChunk) stream.on("text", options.onChunk);
+
+  const response = await stream.finalMessage();
 
   const summary = response.content
     .filter((b): b is Anthropic.TextBlock => b.type === "text")
@@ -48,6 +60,18 @@ export async function summarize(prose: string): Promise<SummaryResult> {
   };
 }
 
+export const summarizerAgent: Agent = {
+  id: "summarizer",
+  async run(prose, options) {
+    const s = await summarize(prose, { onChunk: options?.onChunk });
+    return {
+      output: s.summary,
+      inputTokens: s.inputTokens,
+      outputTokens: s.outputTokens,
+    };
+  },
+};
+
 async function main() {
   const prose = process.argv.slice(2).join(" ").trim();
   if (!prose) {
@@ -55,11 +79,12 @@ async function main() {
     process.exit(1);
   }
 
-  const result = await summarize(prose);
   console.log("\n--- Summarizer TL;DR ---\n");
-  console.log(result.summary);
+  const result = await summarize(prose, {
+    onChunk: (text) => process.stdout.write(text),
+  });
   console.log(
-    `\nTokens used: ${result.inputTokens} in / ${result.outputTokens} out`,
+    `\n\nTokens used: ${result.inputTokens} in / ${result.outputTokens} out`,
   );
 }
 

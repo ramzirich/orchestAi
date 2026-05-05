@@ -1,7 +1,17 @@
-import { research } from "./agents/researcher";
-import { write } from "./agents/writer";
-import { critique } from "./agents/critic";
-import { summarize } from "./agents/summarizer";
+import { researcherAgent } from "./agents/researcher";
+import { writerAgent } from "./agents/writer";
+import { criticAgent } from "./agents/critic";
+import { summarizerAgent } from "./agents/summarizer";
+import { runWorkflow, WORKFLOW_INPUT, type Workflow } from "./runner";
+
+const workflow: Workflow = {
+  nodes: [
+    { agent: researcherAgent, inputFrom: WORKFLOW_INPUT },
+    { agent: writerAgent, inputFrom: "researcher" },
+    { agent: criticAgent, inputFrom: "writer" },
+    { agent: summarizerAgent, inputFrom: "writer" },
+  ],
+};
 
 async function main() {
   const topic = process.argv.slice(2).join(" ").trim();
@@ -10,27 +20,25 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`\n[1/4] Researcher working on: ${topic}\n`);
-  const r = await research(topic);
-  console.log(r.notes);
+  const total = workflow.nodes.length;
+  let step = 0;
 
-  console.log(`\n[2/4] Writer turning notes into prose...\n`);
-  const w = await write(r.notes);
-  console.log(w.prose);
+  const run = await runWorkflow(workflow, topic, {
+    onNodeStart: (node) => {
+      step += 1;
+      console.log(
+        `\n[${step}/${total}] ${node.agent.id} <- ${node.inputFrom}\n`,
+      );
+    },
+    onChunk: (_nodeId, text) => process.stdout.write(text),
+    onNodeEnd: () => process.stdout.write("\n"),
+  });
 
-  console.log(`\n[3/4] Critic reviewing the prose...\n`);
-  const c = await critique(w.prose);
-  console.log(c.issues);
-
-  console.log(`\n[4/4] Summarizer producing TL;DR...\n`);
-  const s = await summarize(w.prose);
-  console.log(s.summary);
-
-  const totalIn = r.inputTokens + w.inputTokens + c.inputTokens + s.inputTokens;
-  const totalOut =
-    r.outputTokens + w.outputTokens + c.outputTokens + s.outputTokens;
+  const perNode = run.nodes
+    .map((n) => `${n.id} ${n.inputTokens}/${n.outputTokens}`)
+    .join(", ");
   console.log(
-    `\n--- Pipeline complete --- Tokens: ${totalIn} in / ${totalOut} out (researcher: ${r.inputTokens}/${r.outputTokens}, writer: ${w.inputTokens}/${w.outputTokens}, critic: ${c.inputTokens}/${c.outputTokens}, summarizer: ${s.inputTokens}/${s.outputTokens})`,
+    `\n--- Pipeline complete --- Tokens: ${run.totalInputTokens} in / ${run.totalOutputTokens} out (${perNode})`,
   );
 }
 

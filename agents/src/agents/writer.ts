@@ -1,5 +1,6 @@
 import "dotenv/config";
 import Anthropic from "@anthropic-ai/sdk";
+import type { Agent } from "../runner";
 
 const client = new Anthropic();
 
@@ -21,17 +22,28 @@ export interface WriteResult {
   outputTokens: number;
 }
 
-export async function write(notes: string): Promise<WriteResult> {
+export interface WriteOptions {
+  onChunk?: (text: string) => void;
+}
+
+export async function write(
+  notes: string,
+  options: WriteOptions = {},
+): Promise<WriteResult> {
   if (!notes || !notes.trim()) {
     throw new Error("write(): notes are required");
   }
 
-  const response = await client.messages.create({
+  const stream = client.messages.stream({
     model: "claude-opus-4-7",
     max_tokens: 1024,
     system: SYSTEM_PROMPT,
     messages: [{ role: "user", content: `Research notes:\n${notes}` }],
   });
+
+  if (options.onChunk) stream.on("text", options.onChunk);
+
+  const response = await stream.finalMessage();
 
   const prose = response.content
     .filter((b): b is Anthropic.TextBlock => b.type === "text")
@@ -47,6 +59,18 @@ export async function write(notes: string): Promise<WriteResult> {
   };
 }
 
+export const writerAgent: Agent = {
+  id: "writer",
+  async run(notes, options) {
+    const w = await write(notes, { onChunk: options?.onChunk });
+    return {
+      output: w.prose,
+      inputTokens: w.inputTokens,
+      outputTokens: w.outputTokens,
+    };
+  },
+};
+
 async function main() {
   const notes = process.argv.slice(2).join(" ").trim();
   if (!notes) {
@@ -54,11 +78,12 @@ async function main() {
     process.exit(1);
   }
 
-  const result = await write(notes);
   console.log("\n--- Writer prose ---\n");
-  console.log(result.prose);
+  const result = await write(notes, {
+    onChunk: (text) => process.stdout.write(text),
+  });
   console.log(
-    `\nTokens used: ${result.inputTokens} in / ${result.outputTokens} out`,
+    `\n\nTokens used: ${result.inputTokens} in / ${result.outputTokens} out`,
   );
 }
 

@@ -9,7 +9,12 @@
       "Bash(gh auth *)",
       "PowerShell(gh --version)",
       "PowerShell(gh auth status)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git config *)",
+      "Bash(npx --prefix \"c:/Users/PcUser/Desktop/claude/projects/orchestAi/agents\" tsc -p \"c:/Users/PcUser/Desktop/claude/projects/orchestAi/agents\" --noEmit --ignoreDeprecations 6.0)",
+      "Bash(npm --prefix \"c:/Users/PcUser/Desktop/claude/projects/orchestAi/agents\" run chain -- \"the rise of mechanical keyboards\")",
+      "Bash(npm --prefix \"c:/Users/PcUser/Desktop/claude/projects/orchestAi/agents\" run chain -- \"the invention of the printing press\")"
     ]
   }
 }

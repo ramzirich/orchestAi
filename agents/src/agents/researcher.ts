@@ -1,5 +1,6 @@
 import "dotenv/config";
 import Anthropic from "@anthropic-ai/sdk";
+import type { Agent } from "../runner";
 
 const client = new Anthropic();
 
@@ -20,17 +21,28 @@ export interface ResearchResult {
   outputTokens: number;
 }
 
-export async function research(topic: string): Promise<ResearchResult> {
+export interface ResearchOptions {
+  onChunk?: (text: string) => void;
+}
+
+export async function research(
+  topic: string,
+  options: ResearchOptions = {},
+): Promise<ResearchResult> {
   if (!topic || !topic.trim()) {
     throw new Error("research(): topic is required");
   }
 
-  const response = await client.messages.create({
+  const stream = client.messages.stream({
     model: "claude-opus-4-7",
     max_tokens: 1024,
     system: SYSTEM_PROMPT,
     messages: [{ role: "user", content: `Topic: ${topic}` }],
   });
+
+  if (options.onChunk) stream.on("text", options.onChunk);
+
+  const response = await stream.finalMessage();
 
   const notes = response.content
     .filter((b): b is Anthropic.TextBlock => b.type === "text")
@@ -46,6 +58,18 @@ export async function research(topic: string): Promise<ResearchResult> {
   };
 }
 
+export const researcherAgent: Agent = {
+  id: "researcher",
+  async run(topic, options) {
+    const r = await research(topic, { onChunk: options?.onChunk });
+    return {
+      output: r.notes,
+      inputTokens: r.inputTokens,
+      outputTokens: r.outputTokens,
+    };
+  },
+};
+
 async function main() {
   const topic = process.argv.slice(2).join(" ").trim();
   if (!topic) {
@@ -53,11 +77,12 @@ async function main() {
     process.exit(1);
   }
 
-  const result = await research(topic);
-  console.log(`\n--- Researcher notes on: ${result.topic} ---\n`);
-  console.log(result.notes);
+  console.log(`\n--- Researcher notes on: ${topic} ---\n`);
+  const result = await research(topic, {
+    onChunk: (text) => process.stdout.write(text),
+  });
   console.log(
-    `\nTokens used: ${result.inputTokens} in / ${result.outputTokens} out`,
+    `\n\nTokens used: ${result.inputTokens} in / ${result.outputTokens} out`,
   );
 }
 
