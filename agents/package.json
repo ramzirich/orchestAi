@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "hello": "tsx src/hello.ts",
-    "research": "tsx src/agents/researcher.ts"
+    "research": "tsx src/agents/researcher.ts",
+    "write": "tsx src/agents/writer.ts",
+    "chain": "tsx src/chain.ts"
   },
   "keywords": [],
   "author": "",

@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(npm --prefix \"c:/Users/PcUser/Desktop/claude/projects/orchestAi/agents\" run research -- \"the history of the espresso machine\")",
+      "Bash(git push *)",
+      "Bash(gh --version)",
+      "Bash(gh auth *)",
+      "PowerShell(gh --version)",
+      "PowerShell(gh auth status)",
+      "Bash(git add *)"
+    ]
+  }
+}
