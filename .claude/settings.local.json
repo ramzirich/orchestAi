@@ -20,7 +20,9 @@
       "Bash(docker --version)",
       "Bash(redis-cli --version)",
       "Bash(Out-String)",
-      "Bash(dotnet new *)"
+      "Bash(dotnet new *)",
+      "Bash(dotnet run *)",
+      "Bash(curl -s -w \"\\\\nHTTP %{http_code}\\\\n\" -X POST http://localhost:5100/agents/research -H \"Content-Type: application/json\" -d '{\"topic\":\"the discovery of the Higgs boson\",\"runId\":\"smoke-1\"}')"
     ]
   }
 }
