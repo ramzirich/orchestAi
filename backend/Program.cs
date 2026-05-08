@@ -1,6 +1,7 @@
 using OrchestAI.Api.Agents;
 using OrchestAI.Api.Hubs;
 using OrchestAI.Api.Services;
+using OrchestAI.Api.Workflows;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,6 +36,9 @@ builder.Services.AddScoped<IAgent, ResearcherAgent>();
 builder.Services.AddScoped<IAgent, WriterAgent>();
 builder.Services.AddScoped<IAgent, CriticAgent>();
 builder.Services.AddScoped<IAgent, SummarizerAgent>();
+
+builder.Services.AddScoped<WorkflowRunner>();
+builder.Services.AddSingleton(ArticleWorkflow.Definition);
 
 var app = builder.Build();
 
