@@ -34,6 +34,7 @@ builder.Services.AddScoped<AgentRunner>();
 builder.Services.AddScoped<IAgent, ResearcherAgent>();
 builder.Services.AddScoped<IAgent, WriterAgent>();
 builder.Services.AddScoped<IAgent, CriticAgent>();
+builder.Services.AddScoped<IAgent, SummarizerAgent>();
 
 var app = builder.Build();
 
