@@ -14,7 +14,13 @@
       "Bash(git config *)",
       "Bash(npx --prefix \"c:/Users/PcUser/Desktop/claude/projects/orchestAi/agents\" tsc -p \"c:/Users/PcUser/Desktop/claude/projects/orchestAi/agents\" --noEmit --ignoreDeprecations 6.0)",
       "Bash(npm --prefix \"c:/Users/PcUser/Desktop/claude/projects/orchestAi/agents\" run chain -- \"the rise of mechanical keyboards\")",
-      "Bash(npm --prefix \"c:/Users/PcUser/Desktop/claude/projects/orchestAi/agents\" run chain -- \"the invention of the printing press\")"
+      "Bash(npm --prefix \"c:/Users/PcUser/Desktop/claude/projects/orchestAi/agents\" run chain -- \"the invention of the printing press\")",
+      "Bash(npx tsx *)",
+      "Bash(dotnet --version)",
+      "Bash(docker --version)",
+      "Bash(redis-cli --version)",
+      "Bash(Out-String)",
+      "Bash(dotnet new *)"
     ]
   }
 }

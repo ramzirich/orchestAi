@@ -1,0 +1,13 @@
+# .NET build output
+**/bin/
+**/obj/
+*.user
+*.suo
+.vs/
+
+# Node
+node_modules/
+
+# Env
+.env
+.env.local
