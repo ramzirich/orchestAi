@@ -33,6 +33,7 @@ builder.Services.AddHttpClient<AnthropicMessageClient>(c =>
 builder.Services.AddScoped<AgentRunner>();
 builder.Services.AddScoped<IAgent, ResearcherAgent>();
 builder.Services.AddScoped<IAgent, WriterAgent>();
+builder.Services.AddScoped<IAgent, CriticAgent>();
 
 var app = builder.Build();
 
