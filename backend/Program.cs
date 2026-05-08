@@ -1,7 +1,6 @@
 using OrchestAI.Api.Agents;
 using OrchestAI.Api.Hubs;
 using OrchestAI.Api.Services;
-using OrchestAI.Api.Workflows;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,7 +37,10 @@ builder.Services.AddScoped<IAgent, CriticAgent>();
 builder.Services.AddScoped<IAgent, SummarizerAgent>();
 
 builder.Services.AddScoped<WorkflowRunner>();
-builder.Services.AddSingleton(ArticleWorkflow.Definition);
+
+var workflowDir = Path.Combine(builder.Environment.ContentRootPath, "Workflows", "Definitions");
+foreach (var def in WorkflowLoader.LoadAll(workflowDir))
+    builder.Services.AddSingleton(def);
 
 var app = builder.Build();
 

@@ -1,6 +1,10 @@
 namespace OrchestAI.Api.Workflows;
 
-public record WorkflowStep(string AgentId, string InputTemplate);
+public record WorkflowStep(
+    string AgentId,
+    string InputTemplate,
+    int MaxRetries = 0,
+    bool SkipOnError = false);
 
 public record WorkflowDefinition(string Id, IReadOnlyList<WorkflowStep> Steps);
 

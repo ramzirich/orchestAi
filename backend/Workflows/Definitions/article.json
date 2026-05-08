@@ -1,0 +1,9 @@
+{
+  "id": "article",
+  "steps": [
+    { "agentId": "researcher", "inputTemplate": "{topic}" },
+    { "agentId": "writer",     "inputTemplate": "{researcher.output}" },
+    { "agentId": "critic",     "inputTemplate": "{writer.output}" },
+    { "agentId": "summarizer", "inputTemplate": "Draft:\n{writer.output}\n\nCritique:\n{critic.output}" }
+  ]
+}

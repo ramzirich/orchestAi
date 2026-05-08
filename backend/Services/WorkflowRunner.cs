@@ -45,7 +45,7 @@ public class WorkflowRunner
                     throw new InvalidOperationException($"agent '{step.AgentId}' is not registered");
 
                 var input = Render(step.InputTemplate, topic, outputs);
-                var result = await _agentRunner.RunAsync(agent, input, runId, cancellationToken);
+                var result = await RunStepAsync(step, agent, input, runId, cancellationToken);
 
                 outputs[step.AgentId] = result.Output;
                 lastOutput = result.Output;
@@ -76,6 +76,59 @@ public class WorkflowRunner
                 cancellationToken);
             throw;
         }
+    }
+
+    private async Task<AgentResult> RunStepAsync(
+        WorkflowStep step,
+        IAgent agent,
+        string input,
+        string runId,
+        CancellationToken cancellationToken)
+    {
+        var attempts = step.MaxRetries + 1;
+        Exception? lastError = null;
+
+        for (var attempt = 1; attempt <= attempts; attempt++)
+        {
+            try
+            {
+                return await _agentRunner.RunAsync(agent, input, runId, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                lastError = ex;
+                _logger.LogWarning(
+                    ex,
+                    "Step {AgentId} attempt {Attempt}/{Total} failed for runId {RunId}",
+                    step.AgentId, attempt, attempts, runId);
+
+                if (attempt < attempts)
+                {
+                    await Emit(
+                        runId,
+                        new { runId, agent = step.AgentId, type = "retry", attempt, message = ex.Message },
+                        cancellationToken);
+                }
+            }
+        }
+
+        if (step.SkipOnError)
+        {
+            _logger.LogWarning(
+                "Step {AgentId} skipped after {Attempts} failed attempts for runId {RunId}",
+                step.AgentId, attempts, runId);
+            await Emit(
+                runId,
+                new { runId, agent = step.AgentId, type = "skipped", message = lastError?.Message },
+                cancellationToken);
+            return new AgentResult("", 0, 0);
+        }
+
+        throw lastError!;
     }
 
     private static string Render(
