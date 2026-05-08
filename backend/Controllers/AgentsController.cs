@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
 using OrchestAI.Api.Agents;
-using OrchestAI.Api.Hubs;
+using OrchestAI.Api.Services;
 
 namespace OrchestAI.Api.Controllers;
 
@@ -9,66 +8,41 @@ namespace OrchestAI.Api.Controllers;
 [Route("[controller]")]
 public class AgentsController : ControllerBase
 {
-    private readonly ResearcherAgent _researcher;
-    private readonly IHubContext<WorkflowHub> _hub;
-    private readonly ILogger<AgentsController> _logger;
+    private readonly IReadOnlyDictionary<string, IAgent> _agents;
+    private readonly AgentRunner _runner;
 
-    public AgentsController(
-        ResearcherAgent researcher,
-        IHubContext<WorkflowHub> hub,
-        ILogger<AgentsController> logger)
+    public AgentsController(IEnumerable<IAgent> agents, AgentRunner runner)
     {
-        _researcher = researcher;
-        _hub = hub;
-        _logger = logger;
+        _agents = agents.ToDictionary(a => a.Id, StringComparer.OrdinalIgnoreCase);
+        _runner = runner;
     }
 
-    [HttpPost("research")]
-    public async Task<IActionResult> Research(
-        [FromBody] ResearchRequest req,
+    [HttpGet]
+    public IActionResult List() => Ok(_agents.Keys.OrderBy(k => k));
+
+    [HttpPost("{id}/run")]
+    public async Task<IActionResult> Run(
+        string id,
+        [FromBody] AgentRunRequest req,
         CancellationToken cancellationToken)
     {
-        if (req is null || string.IsNullOrWhiteSpace(req.Topic))
-            return BadRequest(new { error = "topic is required" });
+        if (req is null || string.IsNullOrWhiteSpace(req.Input))
+            return BadRequest(new { error = "input is required" });
+
+        if (!_agents.TryGetValue(id, out var agent))
+            return NotFound(new { error = $"agent '{id}' not found" });
 
         var runId = string.IsNullOrWhiteSpace(req.RunId)
             ? Guid.NewGuid().ToString("N")
             : req.RunId;
 
-        await _hub.Clients.Group(runId).SendAsync(
-            "agentEvent",
-            new { runId, agent = _researcher.Id, type = "start", topic = req.Topic },
-            cancellationToken);
-
         try
         {
-            var result = await _researcher.RunAsync(
-                req.Topic,
-                async chunk =>
-                {
-                    await _hub.Clients.Group(runId).SendAsync(
-                        "agentEvent",
-                        new { runId, agent = _researcher.Id, type = "chunk", text = chunk },
-                        cancellationToken);
-                },
-                cancellationToken);
-
-            await _hub.Clients.Group(runId).SendAsync(
-                "agentEvent",
-                new
-                {
-                    runId,
-                    agent = _researcher.Id,
-                    type = "end",
-                    inputTokens = result.InputTokens,
-                    outputTokens = result.OutputTokens,
-                },
-                cancellationToken);
-
+            var result = await _runner.RunAsync(agent, req.Input, runId, cancellationToken);
             return Ok(new
             {
                 runId,
-                agent = _researcher.Id,
+                agent = agent.Id,
                 output = result.Output,
                 inputTokens = result.InputTokens,
                 outputTokens = result.OutputTokens,
@@ -76,14 +50,9 @@ public class AgentsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Researcher run failed for runId {RunId}", runId);
-            await _hub.Clients.Group(runId).SendAsync(
-                "agentEvent",
-                new { runId, agent = _researcher.Id, type = "error", message = ex.Message },
-                cancellationToken);
             return StatusCode(500, new { runId, error = ex.Message });
         }
     }
 }
 
-public record ResearchRequest(string Topic, string? RunId);
+public record AgentRunRequest(string Input, string? RunId);

@@ -30,7 +30,9 @@ builder.Services.AddHttpClient<AnthropicMessageClient>(c =>
     c.Timeout = TimeSpan.FromMinutes(5);
 });
 
-builder.Services.AddScoped<ResearcherAgent>();
+builder.Services.AddScoped<AgentRunner>();
+builder.Services.AddScoped<IAgent, ResearcherAgent>();
+builder.Services.AddScoped<IAgent, WriterAgent>();
 
 var app = builder.Build();
 

@@ -22,7 +22,15 @@
       "Bash(Out-String)",
       "Bash(dotnet new *)",
       "Bash(dotnet run *)",
-      "Bash(curl -s -w \"\\\\nHTTP %{http_code}\\\\n\" -X POST http://localhost:5100/agents/research -H \"Content-Type: application/json\" -d '{\"topic\":\"the discovery of the Higgs boson\",\"runId\":\"smoke-1\"}')"
+      "Bash(curl -s -w \"\\\\nHTTP %{http_code}\\\\n\" -X POST http://localhost:5100/agents/research -H \"Content-Type: application/json\" -d '{\"topic\":\"the discovery of the Higgs boson\",\"runId\":\"smoke-1\"}')",
+      "Bash(dotnet build *)",
+      "Bash(taskkill /PID 19660 /F)",
+      "PowerShell(Stop-Process -Id 19660 -Force -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-Process -Id 19660 -ErrorAction SilentlyContinue)",
+      "Bash(curl -s http://localhost:5100/agents)",
+      "Bash(curl -sf http://localhost:5100/Health)",
+      "Bash(curl -s -X POST http://localhost:5100/lifecycle/shutdown)",
+      "Bash(powershell -Command 'Get-Process -Name OrchestAI.Api -ErrorAction SilentlyContinue | Stop-Process -Force; Start-Sleep -Milliseconds 500; \\(Get-Process -Name OrchestAI.Api -ErrorAction SilentlyContinue\\) -eq $null')"
     ]
   }
 }
