@@ -30,7 +30,21 @@
       "Bash(curl -s http://localhost:5100/agents)",
       "Bash(curl -sf http://localhost:5100/Health)",
       "Bash(curl -s -X POST http://localhost:5100/lifecycle/shutdown)",
-      "Bash(powershell -Command 'Get-Process -Name OrchestAI.Api -ErrorAction SilentlyContinue | Stop-Process -Force; Start-Sleep -Milliseconds 500; \\(Get-Process -Name OrchestAI.Api -ErrorAction SilentlyContinue\\) -eq $null')"
+      "Bash(powershell -Command 'Get-Process -Name OrchestAI.Api -ErrorAction SilentlyContinue | Stop-Process -Force; Start-Sleep -Milliseconds 500; \\(Get-Process -Name OrchestAI.Api -ErrorAction SilentlyContinue\\) -eq $null')",
+      "Bash(rm -rf node_modules/next package-lock.json)",
+      "Bash(npm install *)",
+      "Bash(rm -f dev.log)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000)",
+      "Bash(rm -f backend.log)",
+      "Bash(dotnet user-secrets *)",
+      "Bash(ASPNETCORE_ENVIRONMENT=Development dotnet run --no-launch-profile --urls http://localhost:5100)",
+      "Bash(curl -s http://localhost:5100/workflows)",
+      "PowerShell($p = Get-Process -Id 12904 -ErrorAction SilentlyContinue; if \\($p\\) { \"Found: $\\($p.Id\\) $\\($p.Name\\) $\\($p.Path\\)\" } else { \"process 12904 not found\" })",
+      "PowerShell(Stop-Process -Id 12904 -Force)",
+      "PowerShell(Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-Process -Id 12904 -ErrorAction SilentlyContinue)",
+      "Bash(curl -s -o /dev/null -w \"GET /: %{http_code}\\\\n\" http://localhost:3000)",
+      "Bash(curl -s -X POST http://localhost:5100/workflows/article/run -H \"Content-Type: application/json\" -d '{\"topic\":\"smoke test - one short paragraph please\"}')"
     ]
   }
 }
