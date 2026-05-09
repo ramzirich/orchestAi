@@ -20,6 +20,14 @@ public class WorkflowsController : ControllerBase
     [HttpGet]
     public IActionResult List() => Ok(_workflows.Keys.OrderBy(k => k));
 
+    [HttpGet("{id}")]
+    public IActionResult Get(string id)
+    {
+        if (!_workflows.TryGetValue(id, out var definition))
+            return NotFound(new { error = $"workflow '{id}' not found" });
+        return Ok(definition);
+    }
+
     [HttpPost("{id}/run")]
     public async Task<IActionResult> Run(
         string id,

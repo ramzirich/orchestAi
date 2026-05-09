@@ -1,20 +1,23 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import type { HubConnection } from "@microsoft/signalr";
-import { api, type WorkflowRunResponse } from "@/lib/api";
+import { api, type WorkflowDefinition, type WorkflowRunResponse } from "@/lib/api";
 import { connectWorkflowHub, type AgentEvent, type WorkflowEvent } from "@/lib/signalr";
+import type { AgentStatus, AgentTrack } from "@/lib/types";
 
-type AgentStatus = "idle" | "running" | "done" | "error" | "skipped";
-
-type AgentTrack = {
-  id: string;
-  status: AgentStatus;
-  text: string;
-  inputTokens?: number;
-  outputTokens?: number;
-  errorMessage?: string;
-};
+const WorkflowGraph = dynamic(
+  () => import("@/components/WorkflowGraph").then((m) => m.WorkflowGraph),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[260px] rounded-lg border border-zinc-800 bg-zinc-900 flex items-center justify-center text-sm text-zinc-500">
+        Loading graph...
+      </div>
+    ),
+  },
+);
 
 type RunState =
   | { phase: "idle" }
@@ -32,6 +35,7 @@ function newRunId() {
 export function WorkflowConsole() {
   const [workflows, setWorkflows] = useState<string[]>([]);
   const [workflowId, setWorkflowId] = useState<string>("");
+  const [definition, setDefinition] = useState<WorkflowDefinition | null>(null);
   const [topic, setTopic] = useState<string>("The future of multi-agent AI systems");
   const [tracks, setTracks] = useState<Record<string, AgentTrack>>({});
   const [trackOrder, setTrackOrder] = useState<string[]>([]);
@@ -49,6 +53,25 @@ export function WorkflowConsole() {
       })
       .catch((e: Error) => setLoadError(e.message));
   }, []);
+
+  useEffect(() => {
+    if (!workflowId) {
+      setDefinition(null);
+      return;
+    }
+    let cancelled = false;
+    api
+      .getWorkflow(workflowId)
+      .then((d) => {
+        if (!cancelled) setDefinition(d);
+      })
+      .catch((e: Error) => {
+        if (!cancelled) setLoadError(`load definition: ${e.message}`);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [workflowId]);
 
   useEffect(() => {
     return () => {
@@ -183,6 +206,8 @@ export function WorkflowConsole() {
           <div className="text-rose-400 text-sm">Error: {run.message}</div>
         )}
       </div>
+
+      <WorkflowGraph definition={definition} tracks={tracks} />
 
       <div className="space-y-3">
         {trackOrder.length === 0 && run.phase === "idle" && (

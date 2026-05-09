@@ -1,6 +1,18 @@
 export const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5100";
 
+export type WorkflowStep = {
+  agentId: string;
+  inputTemplate: string;
+  maxRetries: number;
+  skipOnError: boolean;
+};
+
+export type WorkflowDefinition = {
+  id: string;
+  steps: WorkflowStep[];
+};
+
 export type WorkflowRunResponse = {
   runId: string;
   workflow: string;
@@ -28,6 +40,7 @@ async function jsonFetch<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   listAgents: () => jsonFetch<string[]>("/agents"),
   listWorkflows: () => jsonFetch<string[]>("/workflows"),
+  getWorkflow: (id: string) => jsonFetch<WorkflowDefinition>(`/workflows/${id}`),
   runWorkflow: (id: string, topic: string, runId?: string) =>
     jsonFetch<WorkflowRunResponse>(`/workflows/${id}/run`, {
       method: "POST",
