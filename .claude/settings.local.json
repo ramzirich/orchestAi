@@ -46,7 +46,14 @@
       "Bash(curl -s -o /dev/null -w \"GET /: %{http_code}\\\\n\" http://localhost:3000)",
       "Bash(curl -s -X POST http://localhost:5100/workflows/article/run -H \"Content-Type: application/json\" -d '{\"topic\":\"smoke test - one short paragraph please\"}')",
       "Bash(curl -s http://localhost:5100/workflows/article)",
-      "Bash(curl -sv http://localhost:5100/workflows/article)"
+      "Bash(curl -sv http://localhost:5100/workflows/article)",
+      "Bash(curl -s -o /dev/null -w \"GET /builder: %{http_code}\\\\n\" http://localhost:3000/builder)",
+      "Bash(curl -s http://localhost:3000/builder)",
+      "Bash(grep -E \"error CS|Build succeeded|Errors$\")",
+      "Bash(curl -s -o /dev/null -w \"POST /workflows/run-inline \\(old binary expected to 404\\): %{http_code}\\\\n\" -X POST -H \"Content-Type: application/json\" -d '{\"definition\":{\"id\":\"x\",\"steps\":[]},\"topic\":\"hi\"}' http://localhost:5100/workflows/run-inline)",
+      "Bash(npx next *)",
+      "Bash(npx eslint *)",
+      "Bash(echo \"EXIT=$?\")"
     ]
   }
 }

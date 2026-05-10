@@ -36,9 +36,9 @@ const STATUS_NODE_STYLES: Record<AgentStatus, string> = {
 function AgentFlowNode({ data }: NodeProps<AgentNode>) {
   return (
     <div
-      className={`rounded-md border px-3 py-2 min-w-[160px] text-xs font-mono shadow-md ${STATUS_NODE_STYLES[data.status]}`}
+      className={`rounded-md border px-3 py-2 min-w-40 text-xs font-mono shadow-md ${STATUS_NODE_STYLES[data.status]}`}
     >
-      <Handle type="target" position={Position.Left} className="!bg-zinc-500" />
+      <Handle type="target" position={Position.Left} className="bg-zinc-500!" />
       <div className="font-semibold text-sm">{data.agentId}</div>
       <div className="uppercase tracking-wider text-[10px] mt-1 opacity-80">{data.status}</div>
       {data.status === "done" && data.outputTokens !== undefined && (
@@ -51,7 +51,7 @@ function AgentFlowNode({ data }: NodeProps<AgentNode>) {
           {data.errorMessage}
         </div>
       )}
-      <Handle type="source" position={Position.Right} className="!bg-zinc-500" />
+      <Handle type="source" position={Position.Right} className="bg-zinc-500!" />
     </div>
   );
 }
@@ -85,7 +85,7 @@ export function WorkflowGraph({
       return {
         id: step.agentId,
         type: "agent",
-        position: { x: i * 220, y: 0 },
+        position: { x: i * 260, y: 0 },
         data: {
           agentId: step.agentId,
           status: t?.status ?? "idle",
@@ -102,16 +102,17 @@ export function WorkflowGraph({
       const sources = deps.length > 0 ? deps : i > 0 ? [definition.steps[i - 1].agentId] : [];
       for (const src of sources) {
         const targetStatus = tracks[step.agentId]?.status ?? "idle";
-        const sourceStatus = tracks[src]?.status ?? "idle";
-        const active = sourceStatus === "done" || targetStatus === "running" || targetStatus === "done";
+        const flowing = targetStatus === "running";
+        const completed = targetStatus === "done";
         edges.push({
           id: `${src}->${step.agentId}`,
           source: src,
           target: step.agentId,
-          animated: targetStatus === "running",
+          type: "smoothstep",
+          animated: flowing,
           style: {
-            stroke: active ? "#10b981" : "#52525b",
-            strokeWidth: 2,
+            stroke: flowing ? "#38bdf8" : completed ? "#10b981" : "#3f3f46",
+            strokeWidth: flowing ? 2.5 : 2,
           },
         });
       }
@@ -122,14 +123,14 @@ export function WorkflowGraph({
 
   if (!definition) {
     return (
-      <div className="h-[200px] rounded-lg border border-zinc-800 bg-zinc-900 flex items-center justify-center text-sm text-zinc-500">
+      <div className="h-50 rounded-lg border border-zinc-800 bg-zinc-900 flex items-center justify-center text-sm text-zinc-500">
         Select a workflow to view the graph.
       </div>
     );
   }
 
   return (
-    <div className="h-[260px] rounded-lg border border-zinc-800 bg-zinc-900 overflow-hidden">
+    <div className="h-65 rounded-lg border border-zinc-800 bg-zinc-900 overflow-hidden">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -142,7 +143,7 @@ export function WorkflowGraph({
         elementsSelectable={false}
       >
         <Background color="#27272a" gap={16} />
-        <Controls showInteractive={false} className="!bg-zinc-800 !border-zinc-700" />
+        <Controls showInteractive={false} className="bg-zinc-800! border-zinc-700!" />
       </ReactFlow>
     </div>
   );

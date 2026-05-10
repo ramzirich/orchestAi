@@ -40,13 +40,39 @@ public class WorkflowsController : ControllerBase
         if (!_workflows.TryGetValue(id, out var definition))
             return NotFound(new { error = $"workflow '{id}' not found" });
 
-        var runId = string.IsNullOrWhiteSpace(req.RunId)
+        return await ExecuteAsync(definition, req.Topic, req.RunId, cancellationToken);
+    }
+
+    [HttpPost("run-inline")]
+    public async Task<IActionResult> RunInline(
+        [FromBody] InlineWorkflowRunRequest req,
+        CancellationToken cancellationToken)
+    {
+        if (req is null || req.Definition is null)
+            return BadRequest(new { error = "definition is required" });
+        if (string.IsNullOrWhiteSpace(req.Topic))
+            return BadRequest(new { error = "topic is required" });
+        if (req.Definition.Steps is null || req.Definition.Steps.Count == 0)
+            return BadRequest(new { error = "definition must have at least one step" });
+        if (string.IsNullOrWhiteSpace(req.Definition.Id))
+            return BadRequest(new { error = "definition.id is required" });
+
+        return await ExecuteAsync(req.Definition, req.Topic, req.RunId, cancellationToken);
+    }
+
+    private async Task<IActionResult> ExecuteAsync(
+        WorkflowDefinition definition,
+        string topic,
+        string? requestedRunId,
+        CancellationToken cancellationToken)
+    {
+        var runId = string.IsNullOrWhiteSpace(requestedRunId)
             ? Guid.NewGuid().ToString("N")
-            : req.RunId;
+            : requestedRunId;
 
         try
         {
-            var result = await _runner.RunAsync(definition, req.Topic, runId, cancellationToken);
+            var result = await _runner.RunAsync(definition, topic, runId, cancellationToken);
             return Ok(new
             {
                 runId,
@@ -65,3 +91,5 @@ public class WorkflowsController : ControllerBase
 }
 
 public record WorkflowRunRequest(string Topic, string? RunId);
+
+public record InlineWorkflowRunRequest(WorkflowDefinition Definition, string Topic, string? RunId);

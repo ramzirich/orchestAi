@@ -46,4 +46,9 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ topic, runId }),
     }),
+  runInlineWorkflow: (definition: WorkflowDefinition, topic: string, runId?: string) =>
+    jsonFetch<WorkflowRunResponse>(`/workflows/run-inline`, {
+      method: "POST",
+      body: JSON.stringify({ definition, topic, runId }),
+    }),
 };
