@@ -1,0 +1,32 @@
+# One command brings up the whole stack: `docker compose up`.
+# Compose auto-loads ./.env for ${VAR} substitution and for env_file.
+
+services:
+  backend:
+    build:
+      context: ./backend          # folder containing the backend Dockerfile
+    image: orchestai-backend:dev   # tag the resulting image (matches our manual build)
+    container_name: orchestai-backend
+    ports:
+      - "5100:5100"                # host:container — same as `-p 5100:5100`
+    env_file:
+      - .env                       # injects ANTHROPIC_API_KEY into the container
+    restart: unless-stopped        # if the container crashes, restart it (until you `down`)
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # NEXT_PUBLIC_* values must be baked at build time.
+        # The browser hits the host's published port, so localhost is correct.
+        NEXT_PUBLIC_BACKEND_URL: http://localhost:5100
+    image: orchestai-frontend:dev
+    container_name: orchestai-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend                    # start order: compose waits for backend's container
+                                   # to be created before starting frontend (note: this
+                                   # does NOT wait for the backend to be *ready* —
+                                   # see the comment in README about healthchecks).
+    restart: unless-stopped
