@@ -86,6 +86,7 @@ export function RunHistoryPanel({
                   onClick={() => onDelete(r.runId)}
                   className="text-xs px-2 py-1 rounded border border-zinc-800 text-zinc-500 hover:text-rose-400 hover:border-rose-700"
                   title="Forget this run"
+                  aria-label={`Forget run for "${r.topic}"`}
                 >
                   ×
                 </button>

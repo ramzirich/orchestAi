@@ -56,8 +56,8 @@ const NODE_TYPES = { agent: AgentBuilderNode };
 
 function AgentPalette({ agents, used }: { agents: string[]; used: Set<string> }) {
   return (
-    <div className="space-y-2">
-      <div className="text-xs uppercase tracking-wider text-zinc-500">Agents</div>
+    <div className="md:space-y-2 flex md:flex-col gap-2 md:gap-0">
+      <div className="hidden md:block text-xs uppercase tracking-wider text-zinc-500">Agents</div>
       {agents.length === 0 && <div className="text-xs text-zinc-600">Loading agents...</div>}
       {agents.map((id) => {
         const isUsed = used.has(id);
@@ -65,11 +65,15 @@ function AgentPalette({ agents, used }: { agents: string[]; used: Set<string> })
           <div
             key={id}
             draggable={!isUsed}
+            tabIndex={isUsed ? -1 : 0}
+            role="button"
+            aria-label={`${id} agent — drag onto the canvas`}
+            aria-disabled={isUsed}
             onDragStart={(e) => {
               e.dataTransfer.setData(PALETTE_MIME, id);
               e.dataTransfer.effectAllowed = "move";
             }}
-            className={`px-3 py-2 rounded border text-xs font-mono select-none ${
+            className={`px-3 py-2 rounded border text-xs font-mono select-none whitespace-nowrap ${
               isUsed
                 ? "border-zinc-800 bg-zinc-900/50 text-zinc-600 cursor-not-allowed"
                 : "border-zinc-700 bg-zinc-900 text-zinc-100 cursor-grab hover:border-emerald-500/60 hover:bg-zinc-800"
@@ -293,12 +297,15 @@ function BuilderInner() {
   );
 
   return (
-    <div className="flex flex-1 min-h-0">
-      <aside className="w-56 border-r border-zinc-800 bg-zinc-950 p-4 space-y-4 overflow-y-auto">
+    <div className="flex flex-1 min-h-0 flex-col md:flex-row">
+      <aside
+        aria-label="Agent palette"
+        className="border-b md:border-b-0 md:border-r border-zinc-800 bg-zinc-950 p-3 md:p-4 md:w-56 md:space-y-4 md:overflow-y-auto overflow-x-auto md:overflow-x-hidden shrink-0"
+      >
         <AgentPalette agents={agents} used={used} />
       </aside>
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
         <div className="border-b border-zinc-800 bg-zinc-950 px-4 py-2 flex items-center gap-2 flex-wrap">
           <input
             value={workflowId}
@@ -360,7 +367,12 @@ function BuilderInner() {
           )}
         </div>
 
-        <div ref={wrapperRef} className="flex-1 min-h-0" onDragOver={onDragOver} onDrop={onDrop}>
+        <div
+          ref={wrapperRef}
+          className="flex-1 min-h-96 md:min-h-0"
+          onDragOver={onDragOver}
+          onDrop={onDrop}
+        >
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -389,7 +401,10 @@ function BuilderInner() {
         </div>
       </div>
 
-      <aside className="w-72 border-l border-zinc-800 bg-zinc-950 p-4 overflow-y-auto">
+      <aside
+        aria-label="Node inspector"
+        className="border-t md:border-t-0 md:border-l border-zinc-800 bg-zinc-950 p-4 md:w-72 max-h-72 md:max-h-none overflow-y-auto shrink-0"
+      >
         <NodeInspector
           node={selected}
           onChange={(t) =>

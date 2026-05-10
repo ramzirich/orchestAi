@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "@xyflow/react/dist/style.css";
@@ -15,8 +15,24 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OrchestAI",
-  description: "Visual multi-agent workflow builder",
+  title: {
+    default: "OrchestAI",
+    template: "%s · OrchestAI",
+  },
+  description:
+    "Visual multi-agent workflow builder. Compose AI agents into pipelines, watch them think live, replay past runs.",
+  applicationName: "OrchestAI",
+  openGraph: {
+    title: "OrchestAI",
+    description: "Visual multi-agent workflow builder.",
+    type: "website",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#09090b",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({

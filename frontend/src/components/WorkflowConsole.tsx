@@ -67,6 +67,7 @@ export function WorkflowConsole() {
   const replayTokenRef = useRef(0);
   const tracksRef = useRef<Record<string, AgentTrack>>({});
   const trackOrderRef = useRef<string[]>([]);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     tracksRef.current = tracks;
@@ -126,8 +127,16 @@ export function WorkflowConsole() {
 
   function cancelInFlight() {
     replayTokenRef.current++;
+    abortRef.current?.abort();
+    abortRef.current = null;
     connectionRef.current?.stop().catch(() => {});
     connectionRef.current = null;
+  }
+
+  function stopRun() {
+    if (run.phase !== "running" && run.phase !== "replaying") return;
+    cancelInFlight();
+    setRun({ phase: "error", runId: run.runId, message: "Stopped by user." });
   }
 
   async function startRun(opts?: { workflowId?: string; topic?: string }) {
@@ -140,6 +149,8 @@ export function WorkflowConsole() {
     setInlineDef(null);
     cancelInFlight();
     const runId = newRunId();
+    const controller = new AbortController();
+    abortRef.current = controller;
     setTracks({});
     setTrackOrder([]);
     setRun({ phase: "running", runId });
@@ -155,7 +166,7 @@ export function WorkflowConsole() {
     }
 
     try {
-      const result = await api.runWorkflow(wf, tp, runId);
+      const result = await api.runWorkflow(wf, tp, runId, controller.signal);
       setRun({ phase: "done", runId, result });
 
       const order = trackOrderRef.current;
@@ -171,6 +182,7 @@ export function WorkflowConsole() {
       };
       setHistory(pushHistory(record));
     } catch (e) {
+      if (controller.signal.aborted) return;
       setRun({ phase: "error", runId, message: (e as Error).message });
     }
   }
@@ -178,6 +190,8 @@ export function WorkflowConsole() {
   async function startInlineRun(def: WorkflowDefinition, tp: string) {
     cancelInFlight();
     const runId = newRunId();
+    const controller = new AbortController();
+    abortRef.current = controller;
     setInlineDef(def);
     setTopic(tp);
     setTracks({});
@@ -195,7 +209,7 @@ export function WorkflowConsole() {
     }
 
     try {
-      const result = await api.runInlineWorkflow(def, tp, runId);
+      const result = await api.runInlineWorkflow(def, tp, runId, controller.signal);
       setRun({ phase: "done", runId, result, inline: true });
 
       const order = trackOrderRef.current;
@@ -212,6 +226,7 @@ export function WorkflowConsole() {
       };
       setHistory(pushHistory(record));
     } catch (e) {
+      if (controller.signal.aborted) return;
       setRun({ phase: "error", runId, message: (e as Error).message });
     }
   }
@@ -349,6 +364,7 @@ export function WorkflowConsole() {
       <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4 space-y-3">
         <div className="grid grid-cols-1 md:grid-cols-[200px_1fr_auto] gap-3">
           <select
+            aria-label="Workflow"
             value={workflowId}
             onChange={(e) => {
               setInlineDef(null);
@@ -369,44 +385,52 @@ export function WorkflowConsole() {
             ))}
           </select>
           <input
+            aria-label="Topic for the workflow run"
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
             disabled={busy}
             placeholder="Topic..."
             className="bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 disabled:text-zinc-500"
           />
-          <button
-            onClick={() => startRun()}
-            disabled={busy || !workflowId || !topic.trim()}
-            className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-700 disabled:text-zinc-400 text-white rounded px-4 py-2 text-sm font-medium"
-          >
-            {run.phase === "running"
-              ? "Running..."
-              : run.phase === "replaying"
-                ? "Replaying..."
-                : "Run"}
-          </button>
+          {busy ? (
+            <button
+              onClick={stopRun}
+              className="bg-rose-600 hover:bg-rose-500 text-white rounded px-4 py-2 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+            >
+              {run.phase === "replaying" ? "Stop replay" : "Stop"}
+            </button>
+          ) : (
+            <button
+              onClick={() => startRun()}
+              disabled={!workflowId || !topic.trim()}
+              className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-700 disabled:text-zinc-400 text-white rounded px-4 py-2 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+            >
+              Run
+            </button>
+          )}
         </div>
-        {loadError && <div className="text-rose-400 text-xs">Failed to load workflows: {loadError}</div>}
-        {run.phase !== "idle" && (
-          <div className="text-xs text-zinc-500 font-mono">
-            {run.phase === "replaying" && <span className="text-sky-400">replaying · </span>}
-            {(run.phase === "running" || run.phase === "done") && run.inline && (
-              <span className="text-emerald-400">inline · </span>
-            )}
-            runId: {run.runId}
-            {run.phase === "done" && (
-              <>
-                {" · "}
-                tokens in/out: {run.result.inputTokens}/{run.result.outputTokens}
-                {run.replayed && <span className="text-sky-400"> · from history</span>}
-              </>
-            )}
-          </div>
-        )}
-        {run.phase === "error" && (
-          <div className="text-rose-400 text-sm">Error: {run.message}</div>
-        )}
+        {loadError && <div role="alert" className="text-rose-400 text-xs">Failed to load workflows: {loadError}</div>}
+        <div role="status" aria-live="polite" aria-atomic="true">
+          {run.phase !== "idle" && (
+            <div className="text-xs text-zinc-500 font-mono">
+              {run.phase === "replaying" && <span className="text-sky-400">replaying · </span>}
+              {(run.phase === "running" || run.phase === "done") && run.inline && (
+                <span className="text-emerald-400">inline · </span>
+              )}
+              runId: {run.runId}
+              {run.phase === "done" && (
+                <>
+                  {" · "}
+                  tokens in/out: {run.result.inputTokens}/{run.result.outputTokens}
+                  {run.replayed && <span className="text-sky-400"> · from history</span>}
+                </>
+              )}
+            </div>
+          )}
+          {run.phase === "error" && (
+            <div role="alert" className="text-rose-400 text-sm">Error: {run.message}</div>
+          )}
+        </div>
       </div>
 
       <WorkflowGraph definition={effectiveDef} tracks={tracks} />
@@ -508,6 +532,7 @@ function AgentCard({ track }: { track: AgentTrack }) {
               onClick={() => copyToClipboard(track.text)}
               className="text-[10px] uppercase tracking-wider text-zinc-500 hover:text-zinc-200 border border-zinc-800 rounded px-1.5 py-0.5"
               title="Copy this agent's output"
+              aria-label={`Copy output from ${track.id}`}
             >
               Copy
             </button>

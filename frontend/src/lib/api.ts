@@ -41,14 +41,21 @@ export const api = {
   listAgents: () => jsonFetch<string[]>("/agents"),
   listWorkflows: () => jsonFetch<string[]>("/workflows"),
   getWorkflow: (id: string) => jsonFetch<WorkflowDefinition>(`/workflows/${id}`),
-  runWorkflow: (id: string, topic: string, runId?: string) =>
+  runWorkflow: (id: string, topic: string, runId?: string, signal?: AbortSignal) =>
     jsonFetch<WorkflowRunResponse>(`/workflows/${id}/run`, {
       method: "POST",
       body: JSON.stringify({ topic, runId }),
+      signal,
     }),
-  runInlineWorkflow: (definition: WorkflowDefinition, topic: string, runId?: string) =>
+  runInlineWorkflow: (
+    definition: WorkflowDefinition,
+    topic: string,
+    runId?: string,
+    signal?: AbortSignal,
+  ) =>
     jsonFetch<WorkflowRunResponse>(`/workflows/run-inline`, {
       method: "POST",
       body: JSON.stringify({ definition, topic, runId }),
+      signal,
     }),
 };

@@ -130,7 +130,11 @@ export function WorkflowGraph({
   }
 
   return (
-    <div className="h-65 rounded-lg border border-zinc-800 bg-zinc-900 overflow-hidden">
+    <div
+      className="h-65 rounded-lg border border-zinc-800 bg-zinc-900 overflow-hidden"
+      role="img"
+      aria-label={`Workflow ${definition.id} with ${definition.steps.length} agent steps`}
+    >
       <ReactFlow
         nodes={nodes}
         edges={edges}
