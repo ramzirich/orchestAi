@@ -19,11 +19,25 @@ RUN dotnet publish -c Release -o /app/publish --no-restore
 # Smaller image — only the ASP.NET runtime, no SDK. This is what actually ships.
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
-COPY --from=build /app/publish ./
 
-# Tell ASP.NET Core to listen on 5100 inside the container, on all interfaces.
-# (By default it binds to localhost only, which would be unreachable from outside.)
+# curl is needed by the HEALTHCHECK below and isn't in the base image.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# The official aspnet image ships with a non-root 'app' user (UID 1654);
+# chown the published output so the dotnet process can read it after USER app.
+COPY --from=build --chown=app:app /app/publish ./
+
 ENV ASPNETCORE_URLS=http://+:5100
 EXPOSE 5100
+
+# Drop root before running the app.
+USER app
+
+# Compose's depends_on: service_healthy waits on this. start-period gives the
+# runtime time to JIT and bind the port before failed checks count.
+HEALTHCHECK --interval=10s --timeout=3s --start-period=20s --retries=3 \
+    CMD curl --fail --silent http://localhost:5100/health || exit 1
 
 ENTRYPOINT ["dotnet", "OrchestAI.Api.dll"]

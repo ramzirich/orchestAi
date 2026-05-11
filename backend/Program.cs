@@ -20,9 +20,11 @@ builder.Services.AddCors(options =>
 
 var anthropicKey =
     builder.Configuration["Anthropic:ApiKey"]
-    ?? Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY")
-    ?? throw new InvalidOperationException(
-        "Anthropic API key not found. Set Anthropic:ApiKey via user-secrets or ANTHROPIC_API_KEY env var.");
+    ?? Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY");
+
+if (string.IsNullOrWhiteSpace(anthropicKey))
+    throw new InvalidOperationException(
+        "Anthropic API key not found or empty. Set Anthropic:ApiKey via user-secrets or ANTHROPIC_API_KEY env var.");
 
 builder.Services.AddSingleton(new AnthropicOptions { ApiKey = anthropicKey });
 builder.Services.AddHttpClient<AnthropicMessageClient>(c =>

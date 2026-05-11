@@ -32,9 +32,12 @@ ENV HOSTNAME=0.0.0.0
 # plus a pruned node_modules into .next/standalone. We copy that, and
 # also the .next/static (CSS/JS chunks) and public/ folders that the
 # standalone server expects to find next to it.
-COPY --from=build /app/.next/standalone ./
-COPY --from=build /app/.next/static ./.next/static
-COPY --from=build /app/public ./public
+# Copy as the unprivileged 'node' user (UID 1000) baked into the official image.
+COPY --from=build --chown=node:node /app/.next/standalone ./
+COPY --from=build --chown=node:node /app/.next/static ./.next/static
+COPY --from=build --chown=node:node /app/public ./public
+
+USER node
 
 EXPOSE 3000
 CMD ["node", "server.js"]
